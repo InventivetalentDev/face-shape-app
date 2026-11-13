@@ -24,6 +24,17 @@ npm run preview
 The development and build scripts copy the installed MediaPipe WASM files into the
 app's public assets. The face model is included in `public/models/face_landmarker.task`.
 
+## Deploy
+
+The app runs on Cloudflare Workers as static assets at https://whattheface.app. With
+Wrangler logged in to the account that owns the domain, build and deploy with:
+
+```sh
+npm run deploy
+```
+
+`wrangler.jsonc` serves `dist/` with no Worker script and attaches the domain.
+
 ## Privacy and accuracy
 
 Your photo never leaves this device. The browser orients and downscales it to at most
