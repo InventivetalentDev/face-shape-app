@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { PointerEvent } from 'react'
+import type { KeyboardEvent, PointerEvent } from 'react'
 import { FACE_OVAL, LANDMARKS } from '../lib/faceShape'
 import type { Point } from '../lib/faceShape'
 import { FRAME_BOX } from '../lib/glasses'
@@ -9,6 +9,8 @@ import { GlassesArt } from './GlassesArt'
 
 interface PhotoStageProps {
   photo: Photo
+  busy: boolean
+  dropTarget: boolean
   points: Point[] | null
   showOutline: boolean
   glassesId: GlassesId | null
@@ -23,7 +25,7 @@ const measurementLines = [
   [LANDMARKS.jawLeft, LANDMARKS.jawRight, 'jaw'],
 ] as const
 
-export function PhotoStage({ photo, points, showOutline, glassesId, placement, onPlacementChange }: PhotoStageProps) {
+export function PhotoStage({ photo, busy, dropTarget, points, showOutline, glassesId, placement, onPlacementChange }: PhotoStageProps) {
   const imageRef = useRef<HTMLImageElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
   const [imagePxPerCssPx, setImagePxPerCssPx] = useState(1)
@@ -72,8 +74,45 @@ export function PhotoStage({ photo, points, showOutline, glassesId, placement, o
     if (drag.current?.pointerId === event.pointerId) drag.current = null
   }
 
+  function adjustGlasses(event: KeyboardEvent<SVGGElement>) {
+    if (!placement) return
+    const next = { ...placement }
+    const step = (event.shiftKey ? 10 : 2) * imagePxPerCssPx
+    switch (event.key) {
+      case 'ArrowLeft':
+        next.x -= step
+        break
+      case 'ArrowRight':
+        next.x += step
+        break
+      case 'ArrowUp':
+        next.y -= step
+        break
+      case 'ArrowDown':
+        next.y += step
+        break
+      case '+':
+      case '=':
+        next.width *= 1.04
+        break
+      case '-':
+      case '_':
+        next.width = Math.max(40, next.width / 1.04)
+        break
+      case '[':
+        next.rotation -= 2
+        break
+      case ']':
+        next.rotation += 2
+        break
+      default: return
+    }
+    event.preventDefault()
+    onPlacementChange(next)
+  }
+
   return (
-    <div className="photo-stage">
+    <div className={`photo-stage${busy ? ' is-busy' : ''}${dropTarget ? ' is-drop-target' : ''}`}>
       <img ref={imageRef} src={photo.url} width={photo.width} height={photo.height} alt="Your uploaded photo" draggable={false} />
       <svg
         ref={svgRef}
@@ -84,8 +123,8 @@ export function PhotoStage({ photo, points, showOutline, glassesId, placement, o
         onPointerCancel={endDrag}
       >
         <title>Face outline, measurements, and glasses</title>
-        {showOutline && points && (
-          <g className="face-measurements">
+        {points && (
+          <g key={photo.url} className="face-measurements" visibility={showOutline ? 'visible' : 'hidden'}>
             <polygon
               className="face-outline"
               points={FACE_OVAL.map(index => `${points[index].x},${points[index].y}`).join(' ')}
@@ -108,10 +147,14 @@ export function PhotoStage({ photo, points, showOutline, glassesId, placement, o
           <g transform={`translate(${placement.x} ${placement.y}) rotate(${placement.rotation})`}>
             <g
               className="glasses"
+              tabIndex={0}
+              role="group"
+              aria-label="Glasses. Arrow keys move, plus and minus resize, brackets rotate."
               transform={`scale(${placement.width / FRAME_BOX.width}) translate(${-FRAME_BOX.width / 2} ${-FRAME_BOX.height / 2})`}
               onPointerDown={event => startDrag(event, 'move')}
+              onKeyDown={adjustGlasses}
             >
-              <rect width={FRAME_BOX.width} height={FRAME_BOX.height} fill="transparent" />
+              <rect className="hit-area" width={FRAME_BOX.width} height={FRAME_BOX.height} fill="transparent" vectorEffect="non-scaling-stroke" />
               <GlassesArt id={glassesId} />
             </g>
             <circle

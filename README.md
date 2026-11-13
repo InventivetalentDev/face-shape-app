@@ -1,4 +1,4 @@
-# Face shape
+# What the face
 
 Upload a selfie to see your estimated face shape, a face outline, and four measurement
 lines. Try on six SVG glasses styles that fit to your eyes. Drag the frames to move them,

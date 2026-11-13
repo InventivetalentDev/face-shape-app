@@ -24,6 +24,7 @@ export default function App() {
   const [showOutline, setShowOutline] = useState(true)
   const [glassesId, setGlassesId] = useState<GlassesId | null>(null)
   const [placement, setPlacement] = useState<GlassesPlacement | null>(null)
+  const [dragging, setDragging] = useState(false)
   const request = useRef(0)
   const photoUrl = useRef<string | null>(null)
 
@@ -98,61 +99,83 @@ export default function App() {
   return (
     <div className="app">
       <header className="page-header">
-        <h1>Face shape</h1>
+        <h1>What the face</h1>
         <p>Runs entirely in your browser. Your photo never leaves this device.</p>
         <p className={`model-status ${modelStatus}`} role="status">
           {modelStatus === 'loading' ? 'Loading face model…' : modelStatus === 'ready' ? 'Face model ready' : 'The face model failed to load.'}
         </p>
       </header>
-      <main className="workspace">
-        <div className="stage-column" aria-busy={analysis.kind === 'detecting'}>
-          {photo ? (
-            <PhotoStage
-              photo={photo}
-              points={analysis.kind === 'done' ? analysis.detection.points : null}
-              showOutline={showOutline}
-              glassesId={analysis.kind === 'done' ? glassesId : null}
-              placement={placement}
-              onPlacementChange={setPlacement}
-            />
-          ) : <UploadZone onFile={handleFile} />}
-          <div className={`stage-status${analysis.kind === 'error' ? ' error' : ''}`} role="status">{statusMessage}</div>
-        </div>
-        <aside className="side-panel" aria-label="Face shape and frames">
-          {analysis.kind === 'done' && measured ? (
-            <>
-              <ResultPanel result={measured.result} measurements={measured.measurements} poseWarning={poseWarning} />
-              <GlassesPicker selected={glassesId} recommended={FACE_SHAPE_INFO[measured.result.shape].recommended} onSelect={selectGlasses} />
-              <p className="fit-help">Drag the frames to move them. Drag the handle to resize and rotate.</p>
-            </>
-          ) : <p className="panel-status">{photo ? statusMessage : 'Upload a front-facing photo to get started.'}</p>}
-          {photo && (
-            <div className="controls">
-              {analysis.kind === 'done' && (
-                <>
+      <main className={`workspace${photo ? ' has-photo' : ''}`}>
+        <div
+          className="stage-column"
+          aria-busy={analysis.kind === 'detecting'}
+          onDragOver={event => {
+            if (!photo) return
+            event.preventDefault()
+            setDragging(true)
+          }}
+          onDragLeave={event => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false)
+          }}
+          onDrop={event => {
+            if (!photo) return
+            event.preventDefault()
+            setDragging(false)
+            const file = event.dataTransfer.files[0]
+            if (file) void handleFile(file)
+          }}
+        >
+          <div className="stage">
+            {photo ? (
+              <PhotoStage
+                photo={photo}
+                busy={analysis.kind === 'detecting'}
+                dropTarget={dragging}
+                points={analysis.kind === 'done' ? analysis.detection.points : null}
+                showOutline={showOutline}
+                glassesId={analysis.kind === 'done' ? glassesId : null}
+                placement={placement}
+                onPlacementChange={setPlacement}
+              />
+            ) : <UploadZone onFile={handleFile} />}
+            <div className={`stage-status${analysis.kind === 'detecting' ? ' busy' : ''}${analysis.kind === 'error' ? ' error' : ''}`} role="status">{statusMessage}</div>
+            {photo && (
+              <div className="photo-toolbar">
+                {analysis.kind === 'done' && (
                   <label className="outline-control">
                     <input type="checkbox" checked={showOutline} onChange={event => setShowOutline(event.currentTarget.checked)} />
                     Show outline
                   </label>
-                  <button type="button" disabled={!glassesId} onClick={() => setPlacement(autoFitGlasses(analysis.detection.points))}>Reset fit</button>
-                </>
-              )}
-              <label className="button primary">
-                New photo
-                <input
-                  className="visually-hidden"
-                  type="file"
-                  accept="image/*"
-                  onChange={event => {
-                    const file = event.currentTarget.files?.[0]
-                    event.currentTarget.value = ''
-                    if (file) void handleFile(file)
-                  }}
-                />
-              </label>
-            </div>
-          )}
-        </aside>
+                )}
+                <div className="photo-actions">
+                  {analysis.kind === 'done' && (
+                    <button type="button" disabled={!glassesId} onClick={() => setPlacement(autoFitGlasses(analysis.detection.points))}>Reset fit</button>
+                  )}
+                  <label className="button primary">
+                    New photo
+                    <input
+                      className="visually-hidden"
+                      type="file"
+                      accept="image/*"
+                      onChange={event => {
+                        const file = event.currentTarget.files?.[0]
+                        event.currentTarget.value = ''
+                        if (file) void handleFile(file)
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        {analysis.kind === 'done' && measured && (
+          <aside className="side-panel" aria-label="Face shape and frames">
+            <ResultPanel result={measured.result} measurements={measured.measurements} poseWarning={poseWarning} />
+            <GlassesPicker selected={glassesId} recommended={FACE_SHAPE_INFO[measured.result.shape].recommended} onSelect={selectGlasses} />
+            <p className="fit-help">Drag to move. Drag the handle to resize and rotate. Keyboard: arrows move, + and − resize, [ and ] rotate.</p>
+          </aside>
+        )}
       </main>
     </div>
   )

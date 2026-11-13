@@ -32,6 +32,7 @@ export function UploadZone({ onFile }: { onFile: (file: File) => void }) {
           }}
         />
       </label>
+      <p className="upload-hint">JPEG, PNG, or WebP. Face the camera in even light, with your forehead visible.</p>
     </div>
   )
 }

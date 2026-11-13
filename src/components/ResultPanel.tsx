@@ -16,7 +16,7 @@ export function ResultPanel({ result, measurements, poseWarning }: ResultPanelPr
       <h2 id="result-heading">Your face shape</h2>
       <div className="shape-result">
         <h3>{info.label}</h3>
-        <span className="shape-score">{Math.round(score * 100)}%</span>
+        <span className="shape-score">{Math.round(score * 100)}% match</span>
       </div>
       {result.scores[runnerUp] >= score / 2 && (
         <p className="close-second">Close second: {FACE_SHAPE_INFO[runnerUp].label} ({Math.round(result.scores[runnerUp] * 100)}%)</p>
