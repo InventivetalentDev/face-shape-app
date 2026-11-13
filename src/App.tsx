@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { GlassesPicker } from './components/GlassesPicker'
+import { HowItWorks } from './components/HowItWorks'
 import { PhotoStage } from './components/PhotoStage'
 import { ResultPanel } from './components/ResultPanel'
 import { UploadZone } from './components/UploadZone'
@@ -100,7 +101,8 @@ export default function App() {
     <div className="app">
       <header className="page-header">
         <h1>What the face</h1>
-        <p>Runs entirely in your browser. Your photo never leaves this device.</p>
+        <p className="lede">Upload a selfie to find your face shape, see which glasses frames suit it, and try them on.</p>
+        <p className="privacy-note">Runs entirely in your browser. Your photo never leaves this device.</p>
         <p className={`model-status ${modelStatus}`} role="status">
           {modelStatus === 'loading' ? 'Loading face model…' : modelStatus === 'ready' ? 'Face model ready' : 'The face model failed to load.'}
         </p>
@@ -169,6 +171,7 @@ export default function App() {
             )}
           </div>
         </div>
+        {!photo && <HowItWorks />}
         {analysis.kind === 'done' && measured && (
           <aside className="side-panel" aria-label="Face shape and frames">
             <ResultPanel result={measured.result} measurements={measured.measurements} poseWarning={poseWarning} />
@@ -177,6 +180,7 @@ export default function App() {
           </aside>
         )}
       </main>
+      <footer className="page-footer"><a href="https://github.com/InventivetalentDev/face-shape-app">Source code on GitHub</a></footer>
     </div>
   )
 }
